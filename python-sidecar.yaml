@@ -1,0 +1,25 @@
+apiVersion: opentelemetry.io/v1alpha1
+kind: OpenTelemetryCollector
+metadata:
+  name: sidecar
+  namespace: test-app
+spec:
+  mode: sidecar
+  config: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+          http:
+    exporters:
+      otlp:
+        endpoint: otel-collector-collector.tracing.svc.cluster.local:4318
+        tls:
+          insecure: true
+    service:
+      pipelines:
+        traces:
+          receivers:
+          - otlp
+          exporters:
+          - otlp  

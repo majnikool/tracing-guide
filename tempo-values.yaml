@@ -1,0 +1,57 @@
+global:
+  clusterDomain: 'cluster.local'
+  image:
+    # -- Overrides the Docker registry globally for all images, excluding enterprise.
+    registry: registry.xx.com/dockerhub-proxy  
+gateway:
+  enabled: true
+minio:
+  enabled: false
+
+metricsGenerator:
+  enabled: true
+  registry:
+    external_labels:
+      source: tempo
+  config:
+    storage:
+      remote_write:
+       - url: http://rancher-monitoring-prometheus.cattle-monitoring-system.svc.cluster.local:9090/api/v1/write
+         send_exemplars: true
+global_overrides:
+  metrics_generator_processors: [service-graphs, span-metrics]
+
+storage:
+  trace:
+    backend: s3
+    s3:
+      access_key: ''
+      secret_key: ''
+      bucket: 'tempo'
+      endpoint: 'bdc-minio.xx.com:9443'
+      insecure: false
+      
+traces:
+  otlp:
+    http:
+      enabled: true
+    grpc:
+      enabled: true
+    zipkin:
+      enabled: false
+    jaeger:
+      thriftHttp:
+        enabled: false
+    opencensus:
+      enabled: false      
+
+metaMonitoring:
+  serviceMonitor:
+    enabled: true
+    labels:
+      prometheus: system
+
+distributor:
+  config:
+    log_received_spans:
+      enabled: true

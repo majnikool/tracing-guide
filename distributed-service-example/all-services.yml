@@ -1,0 +1,158 @@
+# Uninstrumented deployment for kubernetes
+# Before deploying it, run "make build-all push-all"
+# as it requires to manually load the images to the local K8s cluster (e.g. kind load-image)
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tracing-test
+  labels:
+    istio-injection: "enabled" 
+  annotations:
+    sidecar.opentelemetry.io/inject: "sidecar"
+    instrumentation.opentelemetry.io/inject-go: "true"     
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: tracing-test
+spec:
+  selector:
+    matchLabels:
+      app: frontend
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: frontend
+      annotations:
+        instrumentation.opentelemetry.io/inject-go: "true"
+        sidecar.opentelemetry.io/inject: "sidecar"
+    spec:
+      containers:
+        - name: frontend
+          image: dev-docker-registry.xx.com/trace-test/frontend
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          env:
+            - name: BACKEND
+              value: http://backend:8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: tracing-test
+spec:
+  selector:
+    app: frontend
+  ports:
+    - port: 8080
+      protocol: TCP
+      targetPort: http              
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: tracing-test
+spec:
+  selector:
+    matchLabels:
+      app: backend
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: backend
+      annotations:
+        instrumentation.opentelemetry.io/inject-go: "true"
+        sidecar.opentelemetry.io/inject: "sidecar"
+    spec:
+      containers:
+        - name: backend
+          image: dev-docker-registry.xx.com/trace-test/backend
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          env:
+            - name: WORKERS
+              value: "worker:5000"
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: tracing-test
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 8080
+      protocol: TCP
+      targetPort: http
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: tracing-test
+spec:
+  selector:
+    matchLabels:
+      app: worker
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: worker
+      annotations:
+        instrumentation.opentelemetry.io/inject-go: "true"
+        sidecar.opentelemetry.io/inject: "sidecar"
+    spec:
+      containers:
+        - name: worker
+          image: dev-docker-registry.xx.com/trace-test/worker
+          ports:
+            - containerPort: 5000
+              name: grpc
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker
+  namespace: tracing-test
+spec:
+  selector:
+    app: worker
+  ports:
+    - port: 5000
+      targetPort: grpc
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: loadgen
+  namespace: tracing-test
+  labels:
+    app: loadgen
+  annotations:
+    instrumentation.opentelemetry.io/inject-go: "true"
+    sidecar.opentelemetry.io/inject: "sidecar"
+spec:
+  containers:
+    - name: loadgen
+      image: dev-docker-registry.xx.com/trace-test/loadgen
+      env:
+        - name: "WAIT_TIME"
+          value: "5s"
+        - name: "FRONTEND"
+          value: "http://frontend:8080"

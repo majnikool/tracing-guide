@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend/
+      dockerfile: Dockerfile
+    image: example-frontend
+    ports: [ "8080:8080" ]
+    environment:
+      BACKEND: "http://backend:8080"
+  backend:
+    build:
+      context: ./backend/
+      dockerfile: Dockerfile
+    image: example-backend
+    environment:
+      WORKERS: 'worker1:5000,worker2:5000,worker3:5000'
+  worker1:
+    build:
+      context: ./worker/
+      dockerfile: Dockerfile
+    image: example-worker
+  worker2:
+    build:
+      context: ./worker/
+      dockerfile: Dockerfile
+    image: example-worker
+  worker3:
+    build:
+      context: ./worker/
+      dockerfile: Dockerfile
+    image: example-worker
+
+  otelcol:
+    image: grafana/otel-lgtm
+    ports: ["3000:3000", "4317:4317"]
+
+  beyla:
+    image: grafana/beyla:1.2
+    pid: "host"
+    privileged: true
+    command:
+      - --config=/configs/cfg.yaml
+    volumes:
+      - ./configs/:/configs
+    environment:
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otelcol:4317

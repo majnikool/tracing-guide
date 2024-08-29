@@ -1,0 +1,4 @@
+**/bin
+grafana.env
+grafana-credentials.yml
+grafana-credentials-*.yml

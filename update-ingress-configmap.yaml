@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+data:
+  controller-config: |
+    controller:
+      opentelemetry:
+        enabled: true
+      config:
+        enable-opentelemetry: true
+        otel-sampler: AlwaysOn
+        otel-sampler-ratio: 1.0
+        otlp-collector-host: otel-collector-collector.tracing.svc.cluster.local
+        otlp-collector-port: 4317
+        opentelemetry-config: "/etc/nginx/opentelemetry.toml"
+        opentelemetry-operation-name: "HTTP $request_method $service_name $uri"
+        opentelemetry-trust-incoming-span: "true"
+        otel-max-queuesize: "2048"
+        otel-schedule-delay-millis: "5000"
+        otel-max-export-batch-size: "512"
+        otel-service-name: "nginx"
+        otel-sampler-parent-based: "true"

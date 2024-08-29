@@ -1,0 +1,12 @@
+routes:
+  unmatch: heuristic
+  patterns:
+    - /
+    - /submit
+    - /factorial/{number}
+discovery:
+  services:
+    - exe_path: frontend
+    - exe_path: backend
+    - exe_path: worker
+print_traces: true
